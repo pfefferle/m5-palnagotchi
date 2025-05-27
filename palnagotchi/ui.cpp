@@ -64,28 +64,56 @@ void initUi() {
 bool keyboard_changed = false;
 
 bool toggleMenuBtnPressed() {
-  return M5Cardputer.BtnA.isPressed() ||
-         (keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('m') ||
-                               M5Cardputer.Keyboard.isKeyPressed('`')));
+  #if defined(ARDUINO_M5Stack_StampS3)
+    return M5Cardputer.BtnA.isPressed() ||
+          (keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('m') ||
+                                M5Cardputer.Keyboard.isKeyPressed('`')));
+  #elif defined(ARDUINO_m5stack_stickc) || defined(ARDUINO_m5stack_stickc_plus) || defined(ARDUINO_m5stack_stickc_plus2)
+    return M5.BtnB.wasHold();
+  #else
+    return M5.BtnA.wasHold();
+  #endif
 }
 
 bool isOkPressed() {
-  return M5Cardputer.BtnA.isPressed() ||
-         (keyboard_changed && M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER));
+  #if defined(ARDUINO_M5Stack_StampS3)
+    return M5Cardputer.BtnA.isPressed() ||
+      (keyboard_changed && M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER));
+  #elif defined(ARDUINO_m5stack_stickc) || defined(ARDUINO_m5stack_stickc_plus) || defined(ARDUINO_m5stack_stickc_plus2)
+    return M5.BtnB.isPressed();
+  #else
+    return M5.BtnA.wasDecideClickCount() && M5.BtnA.getClickCount() == 1;
+  #endif
 }
 
 bool isNextPressed() {
-  return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('.') ||
-                              M5Cardputer.Keyboard.isKeyPressed('/') ||
-                              M5Cardputer.Keyboard.isKeyPressed(KEY_TAB));
+  #if defined(ARDUINO_M5Stack_StampS3)
+    return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('.') ||
+                                  M5Cardputer.Keyboard.isKeyPressed('/') ||
+                                  M5Cardputer.Keyboard.isKeyPressed(KEY_TAB));
+  #elif defined(ARDUINO_m5stack_stickc) || defined(ARDUINO_m5stack_stickc_plus) || defined(ARDUINO_m5stack_stickc_plus2)
+    return M5.BtnPWR.isPressed();
+  #else
+    return M5.BtnA.wasDecideClickCount() && M5.BtnA.getClickCount() == 2;
+  #endif
 }
 bool isPrevPressed() {
-  return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed(',') ||
-                              M5Cardputer.Keyboard.isKeyPressed(';'));
+  #if defined(ARDUINO_M5Stack_StampS3)
+      return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed(',') ||
+                                  M5Cardputer.Keyboard.isKeyPressed(';'));
+  #elif defined(ARDUINO_m5stack_stickc) || defined(ARDUINO_m5stack_stickc_plus) || defined(ARDUINO_m5stack_stickc_plus2)
+      return M5.BtnA.isPressed();
+  #else
+    return M5.BtnA.wasDecideClickCount() && M5.BtnA.getClickCount() == 3;
+  #endif
 }
 
 void updateUi(bool show_toolbars) {
-  keyboard_changed = M5Cardputer.Keyboard.isChange();
+  #ifdef ARDUINO_M5Stack_StampS3
+    keyboard_changed = M5Cardputer.Keyboard.isChange();
+  #else
+    keyboard_changed = false;
+  #endif
 
   if (toggleMenuBtnPressed()) {
     // If menu is open, return to main menu
@@ -135,10 +163,16 @@ void drawTopCanvas() {
   int sr = ellapsed % 3600;
   int8_t m = sr / 60;
   int8_t s = sr % 60;
-  char right_str[50] = "UPS 0%  UP 00:00:00";
-  sprintf(right_str, "UPS %i%% UP %02d:%02d:%02d", M5.Power.getBatteryLevel(),
-          h, m, s);
-  canvas_top.drawString(right_str, display_w, 3);
+  if (display_w > 128) {
+    char right_str[50] = "UPS 0%  UP 00:00:00";
+    sprintf(right_str, "UPS %i%% UP %02d:%02d:%02d", M5.Power.getBatteryLevel(),
+            h, m, s);
+    canvas_top.drawString(right_str, display_w, 3);
+  } else {
+    char right_str[50] = "UP 00:00:00";
+    sprintf(right_str, "UP %02d:%02d:%02d", h, m, s);
+    canvas_top.drawString(right_str, display_w, 3);
+  }
   canvas_top.drawLine(0, canvas_top_h - 1, display_w, canvas_top_h - 1);
 }
 
@@ -178,7 +212,9 @@ void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
 
   canvas_bot.drawString(stats, 0, 5);
   canvas_bot.setTextDatum(top_right);
-  canvas_bot.drawString("NOT AI", display_w, 5);
+  if (display_w > 128) {
+    canvas_bot.drawString("NOT AI", display_w, 5);
+  }
   canvas_bot.drawLine(0, 0, display_w, 0);
 }
 
@@ -203,7 +239,11 @@ void drawMood(String face, String phrase, bool broken) {
 
 void drawMainMenu() {
   canvas_main.fillSprite(BLACK);
-  canvas_main.setTextSize(2);
+  if (display_w > 128) {
+    canvas_main.setTextSize(2);
+  } else {
+    canvas_main.setTextSize(1.5);
+  }
   canvas_main.setTextColor(GREEN);
   canvas_main.setColor(GREEN);
   canvas_main.setTextDatum(top_left);

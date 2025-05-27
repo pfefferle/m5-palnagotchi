@@ -1,5 +1,14 @@
-#include "M5Cardputer.h"
-#include "M5Unified.h"
+#if defined(ARDUINO_m5stack_stickc) || defined(ARDUINO_m5stack_stickc_plus) || defined(ARDUINO_m5stack_stickc_plus2)
+  #define M5UNIFIED_PC_BUILD 1
+#endif
+
+#ifdef ARDUINO_M5Stack_StampS3
+  #include <M5Cardputer.h>
+#else
+  #include <Arduino.h>
+  #include <M5Unified.h>
+#endif
+
 #include "ui.h"
 
 #define STATE_INIT 0
@@ -10,14 +19,18 @@ uint8_t state;
 
 void initM5() {
   auto cfg = M5.config();
-  M5.begin();
+  M5.begin(cfg);
   M5.Display.begin();
-  M5Cardputer.begin(cfg);
-  M5Cardputer.Keyboard.begin();
+
+  #ifdef ARDUINO_M5Stack_StampS3
+    M5Cardputer.begin(cfg);
+    M5Cardputer.Keyboard.begin();
+  #endif
 }
 
 void setup() {
   initM5();
+  initMood();
   initPwngrid();
   initUi();
   state = STATE_INIT;
@@ -57,7 +70,9 @@ void advertise(uint8_t channel) {
 
 void loop() {
   M5.update();
-  M5Cardputer.update();
+  #ifdef ARDUINO_M5Stack_StampS3
+    M5Cardputer.Keyboard.update();
+  #endif
 
   if (state == STATE_HALT) {
     return;
