@@ -31,7 +31,7 @@ esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len,
                             bool en_sys_seq);
 
 esp_err_t pwngridAdvertise(uint8_t channel, String face) {
-  JsonDocument pal_json;
+  DynamicJsonDocument pal_json(2048);
   String pal_json_str = "";
 
   pal_json["pal"] = true;  // Also detect other Palnagotchis
@@ -94,7 +94,7 @@ esp_err_t pwngridAdvertise(uint8_t channel, String face) {
   return result;
 }
 
-void pwngridAddPeer(JsonDocument &json, signed int rssi) {
+void pwngridAddPeer(DynamicJsonDocument &json, signed int rssi) {
   String identity = json["identity"].as<String>();
 
   for (uint8_t i = 0; i < pwngrid_friends_tot; i++) {
@@ -207,20 +207,25 @@ void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
           }
         }
 
-        JsonDocument sniffed_json;
-        DeserializationError result = deserializeJson(sniffed_json, essid);
+        DynamicJsonDocument sniffed_json(2048);  // ArduinoJson v6s
+        ArduinoJson::V6215PB2::DeserializationError result =
+            deserializeJson(sniffed_json, essid);
 
-        if (result == DeserializationError::Ok) {
+        if (result == ArduinoJson::V6215PB2::DeserializationError::Ok) {
           // Serial.println("\nSuccessfully parsed json");
           // serializeJson(json, Serial);  // ArduinoJson v6
           pwngridAddPeer(sniffed_json, snifferPacket->rx_ctrl.rssi);
-        } else if (result == DeserializationError::IncompleteInput) {
+        } else if (result == ArduinoJson::V6215PB2::DeserializationError::
+                                 IncompleteInput) {
           Serial.println("Deserialization error: incomplete input");
-        } else if (result == DeserializationError::NoMemory) {
+        } else if (result ==
+                   ArduinoJson::V6215PB2::DeserializationError::NoMemory) {
           Serial.println("Deserialization error: no memory");
-        } else if (result == DeserializationError::InvalidInput) {
+        } else if (result ==
+                   ArduinoJson::V6215PB2::DeserializationError::InvalidInput) {
           Serial.println("Deserialization error: invalid input");
-        } else if (result == DeserializationError::TooDeep) {
+        } else if (result ==
+                   ArduinoJson::V6215PB2::DeserializationError::TooDeep) {
           Serial.println("Deserialization error: too deep");
         } else {
           Serial.println(essid);
