@@ -1,14 +1,12 @@
 #if defined(ARDUINO_m5stack_stickc) || defined(ARDUINO_m5stack_stickc_plus) || defined(ARDUINO_m5stack_stickc_plus2)
-  #define M5UNIFIED_PC_BUILD 1
+  // todo
 #endif
 
 #ifdef ARDUINO_M5Stack_StampS3
-  #include <M5Cardputer.h>
-#else
-  #include <Arduino.h>
-  #include <M5Unified.h>
+  #include "M5Cardputer.h"
 #endif
 
+#include "M5Unified.h"
 #include "ui.h"
 
 #define STATE_INIT 0
