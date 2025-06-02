@@ -40,7 +40,9 @@ uint8_t menu_current_cmd = 0;
 uint8_t menu_current_opt = 0;
 
 void initUi() {
-  M5.Display.setRotation(1);
+  if (M5.Display.width() < M5.Display.height()) {
+    M5.Display.setRotation(M5.Display.getRotation() ^ 1);
+  }
   M5.Display.setTextFont(&fonts::Font0);
   M5.Display.setTextSize(1);
   M5.Display.fillScreen(TFT_BLACK);
@@ -64,52 +66,52 @@ void initUi() {
 bool keyboard_changed = false;
 
 bool toggleMenuBtnPressed() {
-  #if defined(ARDUINO_M5Stack_StampS3)
+  #if defined(ARDUINO_M5STACK_CARDPUTER)
     return M5Cardputer.BtnA.isPressed() ||
           (keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('m') ||
                                 M5Cardputer.Keyboard.isKeyPressed('`')));
-  #elif defined(ARDUINO_m5stack_stickc) || defined(ARDUINO_m5stack_stickc_plus) || defined(ARDUINO_m5stack_stickc_plus2)
-    return M5.BtnB.wasHold();
+  #elif defined(ARDUINO_M5STACK_STICKC) || defined(ARDUINO_M5STACK_STICKC_PLUS) || defined(ARDUINO_M5STACK_STICKC_PLUS2)
+    return M5.BtnA.wasHold();
   #else
     return M5.BtnA.wasHold();
   #endif
 }
 
 bool isOkPressed() {
-  #if defined(ARDUINO_M5Stack_StampS3)
+  #if defined(ARDUINO_M5STACK_CARDPUTER)
     return M5Cardputer.BtnA.isPressed() ||
       (keyboard_changed && M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER));
-  #elif defined(ARDUINO_m5stack_stickc) || defined(ARDUINO_m5stack_stickc_plus) || defined(ARDUINO_m5stack_stickc_plus2)
-    return M5.BtnB.isPressed();
+  #elif defined(ARDUINO_M5STACK_STICKC) || defined(ARDUINO_M5STACK_STICKC_PLUS) || defined(ARDUINO_M5STACK_STICKC_PLUS2)
+    return M5.BtnA.wasClicked();
   #else
     return M5.BtnA.wasDecideClickCount() && M5.BtnA.getClickCount() == 1;
   #endif
 }
 
 bool isNextPressed() {
-  #if defined(ARDUINO_M5Stack_StampS3)
+  #if defined(ARDUINO_M5STACK_CARDPUTER)
     return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('.') ||
                                   M5Cardputer.Keyboard.isKeyPressed('/') ||
                                   M5Cardputer.Keyboard.isKeyPressed(KEY_TAB));
-  #elif defined(ARDUINO_m5stack_stickc) || defined(ARDUINO_m5stack_stickc_plus) || defined(ARDUINO_m5stack_stickc_plus2)
-    return M5.BtnPWR.isPressed();
+  #elif defined(ARDUINO_M5STACK_STICKC) || defined(ARDUINO_M5STACK_STICKC_PLUS) || defined(ARDUINO_M5STACK_STICKC_PLUS2)
+    return M5.BtnPWR.wasClicked();
   #else
     return M5.BtnA.wasDecideClickCount() && M5.BtnA.getClickCount() == 2;
   #endif
 }
 bool isPrevPressed() {
-  #if defined(ARDUINO_M5Stack_StampS3)
+  #if defined(ARDUINO_M5STACK_CARDPUTER)
       return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed(',') ||
                                   M5Cardputer.Keyboard.isKeyPressed(';'));
-  #elif defined(ARDUINO_m5stack_stickc) || defined(ARDUINO_m5stack_stickc_plus) || defined(ARDUINO_m5stack_stickc_plus2)
-      return M5.BtnA.isPressed();
+  #elif defined(ARDUINO_M5STACK_STICKC) || defined(ARDUINO_M5STACK_STICKC_PLUS) || defined(ARDUINO_M5STACK_STICKC_PLUS2)
+      return M5.BtnB.wasClicked();
   #else
     return M5.BtnA.wasDecideClickCount() && M5.BtnA.getClickCount() == 3;
   #endif
 }
 
 void updateUi(bool show_toolbars) {
-  #ifdef ARDUINO_M5Stack_StampS3
+  #ifdef ARDUINO_M5STACK_CARDPUTER
     keyboard_changed = M5Cardputer.Keyboard.isChange();
   #else
     keyboard_changed = false;
