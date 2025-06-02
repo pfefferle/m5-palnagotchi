@@ -65,7 +65,7 @@ void advertise(uint8_t channel) {
 void loop() {
   M5.update();
   #ifdef ARDUINO_M5STACK_CARDPUTER
-    M5Cardputer.Keyboard.update();
+    M5Cardputer.update();
   #endif
 
   if (state == STATE_HALT) {
