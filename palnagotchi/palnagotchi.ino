@@ -1,8 +1,4 @@
-#if defined(ARDUINO_m5stack_stickc) || defined(ARDUINO_m5stack_stickc_plus) || defined(ARDUINO_m5stack_stickc_plus2)
-  // todo
-#endif
-
-#ifdef ARDUINO_M5Stack_StampS3
+#ifdef ARDUINO_M5STACK_CARDPUTER
   #include "M5Cardputer.h"
 #endif
 
@@ -20,7 +16,7 @@ void initM5() {
   M5.begin(cfg);
   M5.Display.begin();
 
-  #ifdef ARDUINO_M5Stack_StampS3
+  #ifdef ARDUINO_M5STACK_CARDPUTER
     M5Cardputer.begin(cfg);
     M5Cardputer.Keyboard.begin();
   #endif
@@ -68,7 +64,7 @@ void advertise(uint8_t channel) {
 
 void loop() {
   M5.update();
-  #ifdef ARDUINO_M5Stack_StampS3
+  #ifdef ARDUINO_M5STACK_CARDPUTER
     M5Cardputer.Keyboard.update();
   #endif
 

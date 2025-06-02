@@ -1,4 +1,4 @@
-#ifdef ARDUINO_M5Stack_StampS3
+#ifdef ARDUINO_M5STACK_CARDPUTER
   #include "M5Cardputer.h"
 #endif
 #include "mood.h"
