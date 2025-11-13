@@ -3,7 +3,6 @@
 M5Canvas canvas_top(&M5.Display);
 M5Canvas canvas_main(&M5.Display);
 M5Canvas canvas_bot(&M5.Display);
-// M5Canvas canvas_peers_menu(&M5.Display);
 
 int32_t display_w;
 int32_t display_h;
@@ -14,17 +13,15 @@ int32_t canvas_bot_h;
 int32_t canvas_peers_menu_h;
 int32_t canvas_peers_menu_w;
 
+float lastBatteryLevel = -1;
+unsigned long lastBatteryUpdate = 0;
+
 struct menu {
   char name[25];
   int command;
 };
 
-menu main_menu[] = {
-    {"Nearby Pwnagotchis", 2},
-    // {"Settings", 4},
-    {"About", 8}
-    // {"Friend spam", 16},
-};
+menu main_menu[] = {{"Nearby Pwnagotchis", 2}, {"About", 8}};
 
 menu settings_menu[] = {
     {"Change name", 40},
@@ -99,6 +96,7 @@ bool isNextPressed() {
     return M5.BtnA.wasDecideClickCount() && M5.BtnA.getClickCount() == 2;
   #endif
 }
+
 bool isPrevPressed() {
   #if defined(ARDUINO_M5STACK_CARDPUTER)
       return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed(',') ||
@@ -118,8 +116,6 @@ void updateUi(bool show_toolbars) {
   #endif
 
   if (toggleMenuBtnPressed()) {
-    // If menu is open, return to main menu
-    // If not, toggle menu
     if (menu_open == true && menu_current_cmd != 0) {
       menu_current_cmd = 0;
       menu_current_opt = 0;
@@ -153,12 +149,29 @@ void updateUi(bool show_toolbars) {
 }
 
 void drawTopCanvas() {
+  unsigned long now = millis();
+
+  if (now - lastBatteryUpdate > 2000) {
+    lastBatteryUpdate = now;
+
+    float rawLevel = M5.Power.getBatteryLevel();
+    float alpha = 0.2;
+    if (rawLevel >= 0 && rawLevel <= 100) {
+      if (lastBatteryLevel < 0) {
+        lastBatteryLevel = rawLevel;
+      } else {
+        lastBatteryLevel = alpha * rawLevel + (1 - alpha) * lastBatteryLevel;
+      }
+    }
+  }
+
   canvas_top.fillSprite(BLACK);
   canvas_top.setTextSize(1);
   canvas_top.setTextColor(GREEN);
   canvas_top.setColor(GREEN);
   canvas_top.setTextDatum(top_left);
   canvas_top.drawString("CH *", 0, 3);
+
   canvas_top.setTextDatum(top_right);
   unsigned long ellapsed = millis() / 1000;
   int8_t h = ellapsed / 3600;
@@ -167,8 +180,8 @@ void drawTopCanvas() {
   int8_t s = sr % 60;
   if (display_w > 128) {
     char right_str[50] = "UPS 0%  UP 00:00:00";
-    sprintf(right_str, "UPS %i%% UP %02d:%02d:%02d", M5.Power.getBatteryLevel(),
-            h, m, s);
+    sprintf(right_str, "UPS %i%% UP %02d:%02d:%02d", (int)lastBatteryLevel, h, m,
+          s);
     canvas_top.drawString(right_str, display_w, 3);
   } else {
     char right_str[50] = "UP 00:00:00";
@@ -179,21 +192,19 @@ void drawTopCanvas() {
 }
 
 String getRssiBars(signed int rssi) {
-  String rssi_bars = "";
-
   if (rssi != -1000) {
     if (rssi >= -67) {
-      rssi_bars = "||||";
+      return "||||";
     } else if (rssi >= -70) {
-      rssi_bars = "|||";
+      return "|||";
     } else if (rssi >= -80) {
-      rssi_bars = "||";
+      return "||";
     } else {
-      rssi_bars = "|";
+      return "|";
     }
   }
 
-  return rssi_bars;
+  return "";
 }
 
 void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
@@ -204,12 +215,13 @@ void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
   canvas_bot.setColor(GREEN);
   canvas_bot.setTextDatum(top_left);
 
-  // https://github.com/evilsocket/pwnagotchi/blob/2122af4e264495d32ee415c074da8efd905901f0/pwnagotchi/ui/view.py#L191
   String rssi_bars = getRssiBars(rssi);
-  char stats[25] = "FRND 0 (0)";
+  char stats[64];
   if (friends_run > 0) {
     sprintf(stats, "FRND %d (%d) [%s] %s", friends_run, friends_tot,
-            last_friend_name, rssi_bars);
+            last_friend_name.c_str(), rssi_bars.c_str());
+  } else {
+    sprintf(stats, "FRND 0 (0)");
   }
 
   canvas_bot.drawString(stats, 0, 5);
@@ -221,12 +233,7 @@ void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
 }
 
 void drawMood(String face, String phrase, bool broken) {
-  if (broken == true) {
-    canvas_main.setTextColor(RED);
-  } else {
-    canvas_main.setTextColor(GREEN);
-  }
-
+  canvas_main.setTextColor(broken ? RED : GREEN);
   canvas_main.setTextSize(4);
   canvas_main.setTextDatum(middle_center);
   canvas_main.fillSprite(BLACK);
@@ -247,7 +254,6 @@ void drawMainMenu() {
     canvas_main.setTextSize(1.5);
   }
   canvas_main.setTextColor(GREEN);
-  canvas_main.setColor(GREEN);
   canvas_main.setTextDatum(top_left);
 
   char display_str[50] = "";
@@ -263,10 +269,9 @@ void drawNearbyMenu() {
   canvas_main.clear(BLACK);
   canvas_main.setTextSize(2);
   canvas_main.setTextColor(GREEN);
-  canvas_main.setColor(GREEN);
   canvas_main.setTextDatum(top_left);
 
-  pwngrid_peer* pwngrid_peers = getPwngridPeers();
+  pwngrid_peer *pwngrid_peers = getPwngridPeers();
   uint8_t len = getPwngridRunTotalPeers();
 
   if (len == 0) {
@@ -278,7 +283,7 @@ void drawNearbyMenu() {
   char display_str[50] = "";
   for (uint8_t i = 0; i < len; i++) {
     sprintf(display_str, "%s %s [%s]", (menu_current_opt == i) ? ">" : " ",
-            pwngrid_peers[i].name, getRssiBars(pwngrid_peers[i].rssi));
+            pwngrid_peers[i].name, getRssiBars(pwngrid_peers[i].rssi).c_str());
     int y = PADDING + (i * ROW_SIZE / 2);
     canvas_main.drawString(display_str, 0, y);
   }
@@ -288,7 +293,6 @@ void drawSettingsMenu() {
   canvas_main.fillSprite(BLACK);
   canvas_main.setTextSize(2);
   canvas_main.setTextColor(GREEN);
-  canvas_main.setColor(GREEN);
   canvas_main.setTextDatum(top_left);
 
   char display_str[50] = "";
@@ -309,60 +313,45 @@ void drawAboutMenu() {
 
 void drawMenu() {
   if (isNextPressed()) {
-    // if (menu_current_opt < menu_current_size - 1) {
     menu_current_opt++;
-    // } else {
-    //   menu_current_opt = 0;
-    // }
+    if (menu_current_cmd == 0 && menu_current_opt >= main_menu_len)
+      menu_current_opt = 0;
+    else if (menu_current_cmd == 4 && menu_current_opt >= settings_menu_len)
+      menu_current_opt = 0;
   }
 
   if (isPrevPressed()) {
-    if (menu_current_opt > 0) {
+    if (menu_current_opt > 0)
       menu_current_opt--;
-    }
+    else if (menu_current_cmd == 0)
+      menu_current_opt = main_menu_len - 1;
+    else if (menu_current_cmd == 4)
+      menu_current_opt = settings_menu_len - 1;
   }
-
-  // Change menu
 
   switch (menu_current_cmd) {
-    case 0:
-      if (isOkPressed()) {
-        menu_current_cmd = main_menu[menu_current_opt].command;
-        menu_current_opt = 0;
-      }
-      drawMainMenu();
-      break;
-    case 2:
-      drawNearbyMenu();
-      break;
-    case 4:
-      if (isOkPressed()) {
-        menu_current_cmd = settings_menu[menu_current_opt].command;
-        menu_current_opt = 0;
-      }
-      drawSettingsMenu();
-      break;
-    case 8:
-      drawAboutMenu();
-      break;
-    default:
-      drawMainMenu();
-      break;
+  case 0:
+    if (isOkPressed()) {
+      menu_current_cmd = main_menu[menu_current_opt].command;
+      menu_current_opt = 0;
+    }
+    drawMainMenu();
+    break;
+  case 2:
+    drawNearbyMenu();
+    break;
+  case 4:
+    if (isOkPressed()) {
+      menu_current_cmd = settings_menu[menu_current_opt].command;
+      menu_current_opt = 0;
+    }
+    drawSettingsMenu();
+    break;
+  case 8:
+    drawAboutMenu();
+    break;
+  default:
+    drawMainMenu();
+    break;
   }
 }
-
-// bool check_prev_press() {
-//   if (M5.Keyboard.isKeyPressed(ARROW_UP)) {
-//     return true;
-//   }
-//
-//   return false;
-// }
-//
-// bool check_next_press() {
-//   if (M5.Keyboard.isKeyPressed(ARROW_DOWN)) {
-//     return true;
-//   }
-//
-//   return false;
-// }
