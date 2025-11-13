@@ -157,18 +157,20 @@ void drawTopCanvas() {
   canvas_top.drawLine(0, canvas_top_h - 1, display_w, canvas_top_h - 1);
 }
 
-String getRssiBars(int rssi) {
-  if (rssi > -50)
-    return "▂▃▄▅▆▇█";
-  if (rssi > -60)
-    return "▂▃▄▅▆▇ ";
-  if (rssi > -70)
-    return "▂▃▄▅▆  ";
-  if (rssi > -80)
-    return "▂▃▄▅   ";
-  if (rssi > -90)
-    return "▂▃▄    ";
-  return "▂▃     ";
+String getRssiBars(signed int rssi) {
+  if (rssi != -1000) {
+    if (rssi >= -67) {
+      return "||||";
+    } else if (rssi >= -70) {
+      return "|||";
+    } else if (rssi >= -80) {
+      return "||";
+    } else {
+      return "|";
+    }
+  }
+
+  return "";
 }
 
 void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
